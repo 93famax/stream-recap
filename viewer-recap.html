@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Stream Recap</title>
+  <script src="https://extension-files.twitch.tv/e40fc1bC123456789/1.0.0/twitch-ext.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0e0e10;
+      color: #ffffff;
+    }
+
+    .recap-container {
+      width: 100%;
+      height: 100%;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .recap-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #30313d;
+    }
+
+    .recap-header h2 {
+      font-size: 16px;
+      font-weight: 700;
+    }
+
+    .time-badge {
+      background: rgba(145, 70, 255, 0.3);
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #efb6ff;
+    }
+
+    .video-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 0;
+    }
+
+    .video-player {
+      background: #18181b;
+      border-radius: 8px;
+      overflow: hidden;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-height: 0;
+    }
+
+    video {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      background: #000;
+    }
+
+    .video-info {
+      padding: 12px;
+      background: #18181b;
+      border-radius: 8px;
+      border: 1px solid #30313d;
+    }
+
+    .video-title {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #efb6ff;
+    }
+
+    .video-meta {
+      font-size: 12px;
+      color: #6c7580;
+      display: flex;
+      gap: 12px;
+    }
+
+    .loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px;
+      text-align: center;
+    }
+
+    .spinner {
+      width: 32px;
+      height: 32px;
+      border: 3px solid rgba(145, 70, 255, 0.3);
+      border-top-color: #9146ff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .loading-text {
+      font-size: 13px;
+      color: #6c7580;
+    }
+
+    .loading-bar {
+      width: 100%;
+      height: 4px;
+      background: #30313d;
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+
+    .loading-bar-progress {
+      height: 100%;
+      background: linear-gradient(90deg, #9146ff, #efb6ff);
+      animation: progress 2s ease-in-out infinite;
+    }
+
+    @keyframes progress {
+      0%, 100% { width: 0%; }
+      50% { width: 100%; }
+    }
+
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 24px;
+      text-align: center;
+      color: #6c7580;
+    }
+
+    .empty-icon {
+      font-size: 48px;
+      opacity: 0.5;
+    }
+
+    .error-state {
+      background: rgba(255, 69, 0, 0.2);
+      border: 1px solid #ff4500;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 12px;
+      color: #ffb3a1;
+    }
+
+    .video-controls {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      flex: 1;
+      padding: 8px 12px;
+      border: none;
+      border-radius: 4px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background: rgba(145, 70, 255, 0.3);
+      border: 1px solid #9146ff;
+      color: #efb6ff;
+    }
+
+    .btn-primary:hover {
+      background: rgba(145, 70, 255, 0.5);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid #30313d;
+      color: #efb6ff;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    .disclaimer {
+      font-size: 11px;
+      color: #6c7580;
+      padding: 8px;
+      text-align: center;
+      border-top: 1px solid #30313d;
+      margin-top: auto;
+    }
+  </style>
+</head>
+<body>
+  <div class="recap-container">
+    <div class="recap-header">
+      <h2>📺 Ce que tu as manqué</h2>
+      <div class="time-badge" id="timeBadge">+45 min</div>
+    </div>
+
+    <div class="video-container" id="videoContainer">
+      <!-- Contenu dynamique -->
+    </div>
+
+    <div class="disclaimer">
+      Compilation auto-générée • Max 1 minute
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'https://your-backend.com/api'; // À remplacer
+
+    let streamStartTime = null;
+    let currentChannelId = null;
+    let currentVideoId = null;
+
+    // Initialiser l'extension Twitch
+    window.Twitch.ext.onAuthorized((auth) => {
+      console.log('✅ Extension authorized');
+      currentChannelId = auth.channelId;
+      fetchStreamInfo();
+    });
+
+    function calculateMinutesLate() {
+      if (!streamStartTime) return 0;
+      const now = Date.now();
+      return Math.floor((now - streamStartTime) / 60000);
+    }
+
+    async function fetchStreamInfo() {
+      try {
+        const response = await fetch(`${API_BASE}/stream/${currentChannelId}/info`);
+        const data = await response.json();
+
+        streamStartTime = new Date(data.startTime).getTime();
+        const minutesLate = calculateMinutesLate();
+
+        document.getElementById('timeBadge').textContent = `+${minutesLate} min`;
+
+        // Générer et afficher la vidéo du récap
+        generateAndShowRecap(minutesLate);
+      } catch (error) {
+        console.error('Error:', error);
+        showError('Impossible de charger les infos du stream');
+      }
+    }
+
+    async function generateAndShowRecap(minutesLate) {
+      try {
+        showLoading();
+
+        // Appeler l'API pour générer la vidéo
+        const response = await fetch(
+          `${API_BASE}/stream/${currentChannelId}/recap?minutesLate=${minutesLate}`
+        );
+        const data = await response.json();
+
+        if (data.error) {
+          showEmpty(data.error);
+          return;
+        }
+
+        currentVideoId = data.id;
+        showVideo(data);
+      } catch (error) {
+        console.error('Error generating recap:', error);
+        showError('Erreur lors de la génération du récap');
+      }
+    }
+
+    function showLoading() {
+      const container = document.getElementById('videoContainer');
+      container.innerHTML = `
+        <div class="video-player">
+          <div class="loading-state">
+            <div class="spinner"></div>
+            <div>
+              <div class="loading-text">Génération de ta compilation...</div>
+              <div class="loading-bar">
+                <div class="loading-bar-progress"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    function showVideo(videoData) {
+      const container = document.getElementById('videoContainer');
+      const durationMinSec = `${Math.floor(videoData.duration / 60)}:${String(videoData.duration % 60).padStart(2, '0')}`;
+
+      container.innerHTML = `
+        <div class="video-player">
+          <video id="recapVideo" controls>
+            <source src="${videoData.url}" type="video/mp4">
+            Ton navigateur ne supporte pas la lecture vidéo.
+          </video>
+        </div>
+
+        <div class="video-info">
+          <div class="video-title">✨ Ta compilation personnalisée</div>
+          <div class="video-meta">
+            <span>⏱️ ${durationMinSec}</span>
+            <span>🎬 Auto-générée</span>
+          </div>
+          <div class="video-controls">
+            <button class="btn btn-primary" onclick="downloadVideo('${videoData.url}')">
+              ⬇️ Télécharger
+            </button>
+            <button class="btn btn-secondary" onclick="shareVideo()">
+              📤 Partager
+            </button>
+          </div>
+        </div>
+      `;
+
+      // Charger la vidéo
+      const video = document.getElementById('recapVideo');
+      video.addEventListener('loadstart', () => {
+        console.log('Chargement vidéo...');
+      });
+    }
+
+    function showEmpty(reason = 'Aucun contenu disponible') {
+      const container = document.getElementById('videoContainer');
+      container.innerHTML = `
+        <div class="video-player">
+          <div class="empty-state">
+            <div class="empty-icon">🎬</div>
+            <p>${reason}</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function showError(message) {
+      const container = document.getElementById('videoContainer');
+      container.innerHTML = `
+        <div class="error-state">
+          ⚠️ ${message}
+        </div>
+      `;
+    }
+
+    function downloadVideo(url) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `recap-${new Date().toISOString().split('T')[0]}.mp4`;
+      a.click();
+    }
+
+    function shareVideo() {
+      if (navigator.share) {
+        navigator.share({
+          title: 'Ma compilation Twitch',
+          text: 'Regarde ce que je n\'ai pas manqué du stream!',
+          url: window.location.href
+        }).catch(err => console.log('Share error:', err));
+      } else {
+        alert('Partage non supporté sur ton navigateur');
+      }
+    }
+
+    // Rafraîchir le temps écoulé
+    setInterval(() => {
+      if (streamStartTime) {
+        const minutesLate = calculateMinutesLate();
+        document.getElementById('timeBadge').textContent = `+${minutesLate} min`;
+      }
+    }, 60000); // Chaque minute
+  </script>
+</body>
+</html>

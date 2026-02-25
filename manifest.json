@@ -1,0 +1,33 @@
+{
+  "manifest_version": 1,
+  "version": "1.0.0",
+  "name": "Stream Recap",
+  "author_name": "YourName",
+  "author_email": "your@email.com",
+  "description": "Get a personalized recap of what you missed on the stream",
+  "summary": "📺 Catch up instantly with a dynamic recap of the latest stream moments",
+  "capabilities": {
+    "provides_configuration_segment": false,
+    "can_link_external_content": false
+  },
+  "configuration": {
+    "is_required": false,
+    "required_configuration": false
+  },
+  "oauth_scopes": [],
+  "iconUrl": "https://via.placeholder.com/100/9146ff/ffffff?text=Recap",
+  "iconUrls": {
+    "100x100": "https://via.placeholder.com/100/9146ff/ffffff?text=Recap",
+    "24x24": "https://via.placeholder.com/24/9146ff/ffffff?text=R"
+  },
+  "screenshots": [
+    {
+      "type": "1280x720",
+      "url": "https://via.placeholder.com/1280x720/9146ff/ffffff?text=Stream+Recap"
+    }
+  ],
+  "bits": false,
+  "ebs_required": false,
+  "request_identity_link": false,
+  "chat_capable": false
+}
